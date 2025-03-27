@@ -1,3 +1,14 @@
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("DESeq2")
+
+BiocManager::install("tximport")
+
+install.packages("ggplot2")
+
+
+
 #Define the directory path
 dir_path <- “/Users/alannahodonnell/Downloads/salmon_out/”
 
@@ -49,29 +60,61 @@ res <- results(dds)
 write.csv(as.data.frame(res), 
           file = “/Users/alannahodonnell/Downloads/salmon_out/deseq2_results_M.csv”)
 
-# Plot results (MA-plot)
-plotMA(res, ylim = c(-2, 2))
-
-# Save the plot
-dev.copy(png, “/Users/alannahodonnell/Downloads/salmon_out_M/MA_plot_.png”)
-dev.off()
+# Load necessary libraries
 library(ggplot2)
-# PCA
-vsd <- vst(dds, blind = FALSE)  # Variance stabilizing transformation
-pca_data <- plotPCA(vsd, intgroup = “condition”, returnData = TRUE)
+library(ggrepel)
 
-# Print PCA data
-print(head(pca_data))
-#Save PCA plot
-pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = condition)) +
-  geom_point(size = 3) +
-  xlab(paste0(“PC1: “, round(attr(pca_data, “percentVar”)[1], 1), “% variance”)) +
-  ylab(paste0(“PC2: “, round(attr(pca_data, “percentVar”)[2], 1), “% variance”)) +
+# Read DESeq2 results (adjust file path if needed)
+res_df <- read.csv("/Users/alannahodonnell/Downloads/.csv", sep = ",", stringsAsFactors = FALSE)
+
+# Fix column names if they contain dots instead of underscores
+colnames(res_df) <- gsub("\\.", "_", colnames(res_df))
+
+# Remove rows where pvalue or padj are NA
+res_df <- res_df[!is.na(res_df$pvalue) & !is.na(res_df$padj), ]
+
+# Ensure necessary columns are numeric
+res_df$pvalue <- as.numeric(res_df$pvalue)
+res_df$padj <- as.numeric(res_df$padj)
+res_df$log2FoldChange <- as.numeric(res_df$log2FoldChange)
+
+# Calculate -log10(p-value) for better visualization
+res_df$logP <- -log10(res_df$pvalue)
+
+# Define significance categories
+res_df$significance <- ifelse(
+  res_df$padj < 0.05 & res_df$log2FoldChange > 1, "Upregulated",
+  ifelse(res_df$padj < 0.05 & res_df$log2FoldChange < -1, "Downregulated", "Not Significant")
+)
+
+# Select top 10 upregulated and downregulated genes for labeling
+upregulated_genes <- res_df[res_df$significance == "Upregulated", ]
+downregulated_genes <- res_df[res_df$significance == "Downregulated", ]
+
+# Order by padj and select top 10 for each
+top_upregulated_genes <- upregulated_genes[order(upregulated_genes$padj), ]
+top_downregulated_genes <- downregulated_genes[order(downregulated_genes$padj), ]
+
+top_upregulated_genes <- head(top_upregulated_genes, 10)
+top_downregulated_genes <- head(top_downregulated_genes, 10)
+
+# Combine top upregulated and downregulated genes
+top_genes <- rbind(top_upregulated_genes, top_downregulated_genes)
+
+# Create Volcano Plot
+volcano_plot <- ggplot(res_df, aes(x = log2FoldChange, y = logP, color = significance)) +
+  geom_point(alpha = 0.7) +
+  scale_color_manual(values = c("Upregulated" = "red", "Downregulated" = "blue", "Not Significant" = "gray")) +
   theme_minimal() +
-  ggtitle(“PCA of RNA-seq Data”)
+  labs(title = "Volcano Plot", x = "Log2 Fold Change", y = "-Log10 P-value") +
+  theme(legend.title = element_blank()) +
+  geom_text_repel(data = top_genes, aes(label = Gene_Symbol),  # Ensure correct column name
+                  size = 5, box.padding = 0.5, max.overlaps = 15) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +  # Add threshold line
+  xlim(c(-10, 10)) +  # Set x-axis range from -10 to 10
+  guides(color = guide_legend(override.aes = list(size = 4)))  # Adjust legend without letters
 
-# Save the PCA plot as a PNG file
-ggsave(“/Users/alannahodonnell/Downloads/salmon_out/PCA_plot.png”, plot = pca_plot)
-
-# Display the PCA plot
-print(pca_plot)
+# Save the plot as PNG
+png("/Users/alannahodonnell/Downloads/Volcano_plot_8.png", width = 8, height = 6, units = "in", res = 300)
+print(volcano_plot)
+dev.off()
