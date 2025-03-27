@@ -7,7 +7,7 @@ ADAPTER_FILE="$CONDA_PREFIX/share/trimmomatic/adapters/TruSeq3-SE.fa"
 
 # Loop through all FASTQ files in the current directory
 for file in *.fastq; do
-    # Extract the base name (SRR6175537, SRR6175538, SRR6175539, SRR6175540, SRR6175541, SRR6175542, SRR6175543, SRR6175544.fastq)
+    # Extract the base name (e.g., SRRxxxx from SRRxxxx.fastq)
     BASENAME=$(basename "$file" .fastq)
     # Define the output file name
     OUTPUT_FILE="${BASENAME}.trimmed.fastq"
