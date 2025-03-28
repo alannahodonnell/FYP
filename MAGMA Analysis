@@ -1,0 +1,73 @@
+Step 1: Download MAGMA
+1.	Go to the official MAGMA website:
+https://cncr.nl/research/magma/
+2.	Download the Linux version “MAGMA v1.10 (updated 10/01/2022)”:
+•	Select "Linux (Debian, 64 bits)"
+•	This will save the file as magma_v1.10_linux.zip in your Downloads folder.
+
+Step 2: Create a Directory for MAGMA and Move the File
+3.	Open a terminal and create a directory for MAGMA:
+mkdir ~/MAGMA
+4.	Move into the newly created folder:
+cd ~/MAGMA
+5.	Move the downloaded ZIP file to this folder:
+mv ~/Downloads/magma_v1.10_linux.zip ~/MAGMA/
+6.	Extract the ZIP file:
+unzip magma_v1.10_linux.zip
+7.	Make the magma binary executable:
+chmod +x magma
+8.	Move magma to /usr/local/bin/ for system-wide access (requires sudo):
+sudo mv magma /usr/local/bin/
+9.	Verify that MAGMA is installed by running:
+magma --help
+
+Step 3: Download Reference Data
+10.	Download the Reference Data (1000 Genomes Project, European Population)
+•	Go to https://cncr.nl/research/magma/
+•	Download "g1000_eur.zip"
+11.	Move the file to your MAGMA folder:
+mv ~/Downloads/g1000_eur.zip ~/MAGMA/
+12.	Extract the file:
+unzip g1000_eur.zip
+
+Step 4: Download Gene Location Files (NCBI Build 37)
+13.	Download "Gene locations, build 37" from:
+ https://cncr.nl/research/magma/
+14.	Move the file to the MAGMA directory:
+mv ~/Downloads/NCBI37.3.zip ~/MAGMA/
+15.	Extract the file:
+unzip NCBI37.3.zip
+
+Step 5: Download GWAS Summary Statistics (PGC3 SCZ)
+16.	Download the latest schizophrenia GWAS data (PGC3 SCZ Wave 3)
+•	File: PGC3_SCZ_wave3_public.tsv
+
+17.	Move the file to the MAGMA directory:
+mv ~/Downloads/PGC3_SCZ_wave3_public.tsv ~/MAGMA/
+Step 6: Annotate SNPs to Genes
+
+18.	Run the following command to annotate SNPs based on gene locations (NCBI Build 37):
+./magma --annotate --snp-loc g1000_eur.bim --gene-loc NCBI37.3.gene.loc --out NCBI37_eur
+•	./magma: Runs the MAGMA program (ensure it is executable with chmod +x magma).
+•	--annotate: Tells MAGMA to annotate SNPs to genes.
+•	--snp-loc g1000_eur.bim: Specifies the SNP location file from the 1000 Genomes European (EUR) dataset.
+•	--gene-loc NCBI37.3.gene.loc: Specifies the gene location file based on NCBI Build 37.
+•	--out NCBI37_eur: Sets the output prefix for the annotated file (NCBI37_eur.genes.annot).
+
+Step 7: Perform Gene-Based Analysis
+
+Note: After annotating SNPs to genes, the next step is to perform a gene-based association test. This test looks at the aggregate effect of multiple SNPs within a gene. In the gene analysis step the gene p-values and other gene-level metrics are computed. Correlations between neighbouring  genes  are  computed  as  well,  in  preparation  for  the  gene-level  analysis.
+19.	Run MAGMA to perform gene-based association testing:
+./magma --bfile g1000_eur --pval PGC3_SCZ_wave3_public.tsv N=320404 --gene-annot NCBI37_eur.genes.annot --out Pergene_SCZ
+•	--bfile g1000_eur: Reference data from 1000 Genomes (European)
+•	--pval PGC3_SCZ_wave3_public.tsv N=320404: GWAS summary statistics, with N=320404 (total sample size from SCZ_GWAS)
+•	--gene-annot NCBI37_eur.genes.annot: Gene annotation file
+•	--out Pergene_SCZ: Output file prefix
+
+Step 8: Perform Gene-Set Analysis
+Note: The goal of gene-set analysis is to determine whether a group of genes (that are related by a common biological function or pathway) shows significant association with a trait or disease.
+20.	To test if a specific gene set is enriched:
+./magma --gene-results Pergene_SCZ.genes.raw --set-annot Gene_Set_Tabs.txt --out Gene_set_SCZ_MAGMA
+•	--gene-results Pergene_SCZ.genes.raw: Uses previous gene-based analysis results
+•	--set-annot Gene_Set_Tabs.txt : Gene set file
+•	--out Gene_set_SCZ_MAGMA: Output file prefix
