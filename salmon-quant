@@ -1,10 +1,31 @@
+#For Salmon installation
+
+ conda create --name Seq
+ conda activate Seq
+ conda install bioconda::salmon
+
+#Download transcriptome file
+wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/gencode.vM23.transcripts.fa.gz
+
+#index
+gunzip gencode.vM23.transcripts.fa.gz
+salmon index -t gencode.vM23.transcripts.fa -i salmon_index --threads 2
+
+#individual sample (single-end)
+salmon quant -i salmon_index -l A -r SRRXXX.trimmed.fastq --validateMappings -o salmon_out/SRRXXXX
+
+# Multiple-samples (single-end) (Save this script as a .sh (ex:salmon_quant.sh) file and grant execute permissions using the command chmod +x salmon_quant.sh):
+
+1- nano salmon_quant.sh
+2- copy and paste the below script:
+
 #!/bin/bash
 
 # Define the index and other parameters
 INDEX="salmon_index"
 
 # List of sample IDs
-SAMPLES=("SRRXXX" "SRRXXX" "SRRXXX" "SRRXXX" "SRRXXX" "SRRXXX" "SRRXXX" "SRRXXX")
+SAMPLES=("SRR6175537" "SRR6175538" "SRR6175539" "SRR6175540" "SRR6175541" "SRR6175542" "SRR6175543" "SRR6175544")
 
 # Loop through each sample ID
 for SAMPLE in "${SAMPLES[@]}"
